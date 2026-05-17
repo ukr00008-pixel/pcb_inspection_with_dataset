@@ -1,0 +1,17 @@
+{
+  "pass": false,
+  "defects": [
+    {
+      "class": "anomaly",
+      "confidence": 1.0,
+      "bbox": [
+        0,
+        0,
+        1280,
+        720
+      ]
+    }
+  ],
+    "anomaly_score": 1.0,
+    "heatmap": null
+  }

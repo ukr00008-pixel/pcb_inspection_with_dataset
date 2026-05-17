@@ -1,0 +1,12 @@
+path: D:/pcb_inspection_with_dataset/pcb_inspection/data/yolo_dataset
+train: images/train
+val: images/val
+test: images/test
+
+nc: 5
+names:
+  0: missing_component
+  1: solder_bridge
+  2: cold_joint
+  3: trace_crack
+  4: contamination

@@ -1,0 +1,18 @@
+# PCB Defect Detection Dataset Configuration
+# Used by YOLOv8 training (Phase 2)
+
+path: ./data/pcb_labeled
+train: images/train
+val: images/val
+test: images/test
+
+# Number of defect classes
+nc: 5
+
+# Class names (must match label IDs 0-4)
+names:
+  0: missing_component   # Absent IC, wrong part, rotated component
+  1: solder_bridge       # Solder bridging adjacent pads/traces
+  2: cold_joint          # Dull/grainy solder, insufficient wetting
+  3: trace_crack         # Broken trace, lifted pad, open circuit
+  4: contamination       # Foreign particles, flux residue, moisture

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCB Defect-Inspector : Webcam</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            min-width: 120px;
+        }
+
+        #startBtn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        #startBtn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        #stopBtn {
+            background: #f44336;
+            color: white;
+        }
+
+        #stopBtn:hover {
+            background: #da190b;
+            transform: translateY(-2px);
+        }
+
+        #captureBtn {
+            background: #2196F3;
+            color: white;
+        }
+
+        #captureBtn:hover {
+            background: #0b7dda;
+            transform: translateY(-2px);
+        }
+
+        .video-section {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .video-container {
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        video, canvas {
+            display: block;
+            max-width: 100%;
+            border-radius: 15px;
+        }
+
+        .status {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .results {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .defect-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .defect-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            color: white;
+            font-weight: bold;
+            margin-right: 15px;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .missing_component { background: #f44336; }
+        .solder_bridge { background: #2196F3; }
+        .cold_joint { background: #FFEB3B; color: black; }
+        .trace_crack { background: #9C27B0; }
+        .contamination { background: #FF9800; }
+        .anomaly { background: #9E9E9E; }
+
+        .confidence {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .pass-indicator {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .pass { background: #4CAF50; }
+        .fail { background: #f44336; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            font-size: 18px;
+            margin: 20px 0;
+        }
+
+        .error {
+            background: #f44336;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .video-section {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 PCB Defect Inspector</h1>
+
+        <div class="controls">
+            <button id="startBtn">📹 Start Camera</button>
+            <button id="stopBtn" disabled>⏹️ Stop Camera</button>
+            <button id="captureBtn" disabled>📸 Capture & Analyze</button>
+        </div>
+
+        <div class="video-section">
+            <div class="video-container">
+                <video id="video" width="640" height="480" autoplay muted></video>
+                <div class="status" id="status">Camera stopped</div>
+            </div>
+            <div class="video-container">
+                <canvas id="canvas" width="640" height="480"></canvas>
+                <div class="status" id="analysisStatus">Analysis results</div>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">🔄 Analyzing PCB...</div>
+        <div class="error" id="error"></div>
+
+        <div class="results" id="results" style="display: none;">
+            <div class="pass-indicator" id="passIndicator">
+                <span id="passText">Ready to inspect</span>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-value" id="defectCount">0</span>
+                    <span class="stat-label">Defects Found</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="anomalyScore">0.00</span>
+                    <span class="stat-label">Anomaly Score</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="latency">0ms</span>
+                    <span class="stat-label">Processing Time</span>
+                </div>
+            </div>
+
+            <h3>Detected Defects:</h3>
+            <div id="defectsList">
+                <p>No defects detected</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        let stream = null;
+        let isRunning = false;
+
+        // Colors for defect types
+        const defectColors = {
+            'missing_component': '#f44336',
+            'solder_bridge': '#2196F3',
+            'cold_joint': '#FFEB3B',
+            'trace_crack': '#9C27B0',
+            'contamination': '#FF9800',
+            'anomaly': '#9E9E9E'
+        };
+
+        // Start camera
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 }
+                });
+                video.srcObject = stream;
+                isRunning = true;
+
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('captureBtn').disabled = false;
+                document.getElementById('status').textContent = 'Camera active';
+
+                // Start automatic capture every 2 seconds
+                startAutoCapture();
+
+            } catch (err) {
+                showError('Camera access denied: ' + err.message);
+            }
+        });
+
+        // Stop camera
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            isRunning = false;
+
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('captureBtn').disabled = true;
+            document.getElementById('status').textContent = 'Camera stopped';
+        });
+
+        // Manual capture
+        document.getElementById('captureBtn').addEventListener('click', () => {
+            captureAndAnalyze();
+        });
+
+        // Auto capture timer
+        let autoCaptureInterval;
+        function startAutoCapture() {
+            autoCaptureInterval = setInterval(() => {
+                if (isRunning) {
+                    captureAndAnalyze();
+                }
+            }, 2000); // Every 2 seconds
+        }
+
+        // Capture and analyze
+        async function captureAndAnalyze() {
+            if (!isRunning) return;
+
+            // Draw video frame to canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+
+            try {
+                // Convert canvas to blob
+                const blob = await new Promise(resolve => {
+                    canvas.toBlob(resolve, 'image/jpeg', 0.8);
+                });
+
+                // Send to API
+                const formData = new FormData();
+                formData.append('file', blob, 'pcb.jpg');
+
+                const response = await fetch('/inspect', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const result = await response.json();
+                displayResults(result);
+
+            } catch (err) {
+                showError('Analysis failed: ' + err.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Display results
+        function displayResults(result) {
+            document.getElementById('results').style.display = 'block';
+
+            // Update pass/fail indicator
+            const passIndicator = document.getElementById('passIndicator');
+            const passText = document.getElementById('passText');
+
+            if (result.pass) {
+                passIndicator.className = 'pass-indicator pass';
+                passText.textContent = '✅ PCB PASSED - No defects detected';
+            } else {
+                passIndicator.className = 'pass-indicator fail';
+                passText.textContent = '❌ PCB FAILED - Defects found';
+            }
+
+            // Update stats
+            document.getElementById('defectCount').textContent = result.defects.length;
+            document.getElementById('anomalyScore').textContent = result.anomaly_score.toFixed(3);
+            document.getElementById('latency').textContent = result.latency_ms + 'ms';
+
+            // Update defects list
+            const defectsList = document.getElementById('defectsList');
+            if (result.defects.length === 0) {
+                defectsList.innerHTML = '<p>No defects detected</p>';
+            } else {
+                defectsList.innerHTML = result.defects.map(defect => `
+                    <div class="defect-item">
+                        <span class="defect-badge ${defect.class}" style="background: ${defectColors[defect.class] || '#9E9E9E'}">
+                            ${defect.class.replace('_', ' ')}
+                        </span>
+                        <span class="confidence">${(defect.confidence * 100).toFixed(1)}%</span>
+                    </div>
+                `).join('');
+            }
+
+            // Draw bounding boxes on canvas
+            drawDefectsOnCanvas(result.defects);
+        }
+
+        // Draw defects on canvas
+        function drawDefectsOnCanvas(defects) {
+            // Clear previous drawings
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            defects.forEach(defect => {
+                const [x1, y1, x2, y2] = defect.bbox;
+                const color = defectColors[defect.class] || '#FF0000';
+
+                // Draw bounding box
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+
+                // Draw label background
+                const label = `${defect.class.replace('_', ' ')} ${(defect.confidence * 100).toFixed(1)}%`;
+                ctx.font = '16px Arial';
+                const textMetrics = ctx.measureText(label);
+                ctx.fillStyle = color;
+                ctx.fillRect(x1, y1 - 25, textMetrics.width + 10, 25);
+
+                // Draw label text
+                ctx.fillStyle = 'white';
+                ctx.fillText(label, x1 + 5, y1 - 5);
+            });
+        }
+
+        // Show error
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            if (autoCaptureInterval) {
+                clearInterval(autoCaptureInterval);
+            }
+        });
+    </script>
+</body>
+</html>
